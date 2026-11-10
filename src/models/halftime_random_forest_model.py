@@ -58,9 +58,15 @@ def rmse(y_true, y_pred):
 home_base = np.full(len(y_home_test), y_home_train.mean())
 away_base = np.full(len(y_away_test), y_away_train.mean())
 
+# Fairer baseline: halftime goals + average second-half goals from the training set
+home_2nd_half = (y_home_train - X_home_train["Home Halftime Goals"]).mean()
+away_2nd_half = (y_away_train - X_away_train["Away Halftime Goals"]).mean()
+home_ht_base = X_home_test["Home Halftime Goals"] + home_2nd_half
+away_ht_base = X_away_test["Away Halftime Goals"] + away_2nd_half
+
 print("Halftime random forest")
-print(f"Home RMSE: {rmse(y_home_test, home_preds):.2f}  (baseline {rmse(y_home_test, home_base):.2f})")
-print(f"Away RMSE: {rmse(y_away_test, away_preds):.2f}  (baseline {rmse(y_away_test, away_base):.2f})")
+print(f"Home RMSE: {rmse(y_home_test, home_preds):.2f}  (baseline {rmse(y_home_test, home_base):.2f}, halftime baseline {rmse(y_home_test, home_ht_base):.2f})")
+print(f"Away RMSE: {rmse(y_away_test, away_preds):.2f}  (baseline {rmse(y_away_test, away_base):.2f}, halftime baseline {rmse(y_away_test, away_ht_base):.2f})")
 print(f"Home MAE: {mean_absolute_error(y_home_test, home_preds):.2f}")
 print(f"Away MAE: {mean_absolute_error(y_away_test, away_preds):.2f}")
 print(f"Home R²: {r2_score(y_home_test, home_preds):.2f}")
