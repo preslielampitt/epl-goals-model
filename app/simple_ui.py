@@ -1,4 +1,5 @@
 import json
+import math
 import joblib
 import pandas as pd
 import gradio as gr
@@ -18,6 +19,27 @@ with open(MODELS / "feature_home_columns.json", "r") as f:
     feature_home_columns = json.load(f)
 with open(MODELS / "feature_away_columns.json", "r") as f:
     feature_away_columns = json.load(f)
+
+## Turn predicted goals into win / draw / loss probabilities
+def poisson_pmf(k, lam):
+    # Chance of exactly k goals when lam goals are expected
+    return math.exp(-lam) * lam**k / math.factorial(k)
+
+def outcome_probabilities(home_goals, away_goals, home_ht, away_ht, max_goals=10):
+    # Expected second-half goals (floor at 0.05 in case the model predicts below the halftime score)
+    lam_home = max(home_goals - home_ht, 0.05)
+    lam_away = max(away_goals - away_ht, 0.05)
+    home_win = draw = away_win = 0.0
+    for h in range(max_goals + 1):
+        for a in range(max_goals + 1):
+            p = poisson_pmf(h, lam_home) * poisson_pmf(a, lam_away)
+            if home_ht + h > away_ht + a:
+                home_win += p
+            elif home_ht + h == away_ht + a:
+                draw += p
+            else:
+                away_win += p
+    return home_win, draw, away_win
 
 def predict_scores_from_csv(file):
     try:
@@ -47,32 +69,31 @@ def predict_scores_from_csv(file):
         home_goals_rounded = round(home_goals)
         away_goals_rounded = round(away_goals)
 
-        # Calculate win probabilities
-        total_pred = home_goals_rounded + away_goals_rounded
-        if total_pred == 0:
-            home_prob = away_prob = 0
-        else:
-            home_prob = round((home_goals_rounded / total_pred) * 100)
-            away_prob = round((away_goals_rounded / total_pred) * 100)
+        # Estimated win / draw / loss probabilities (Poisson on second-half goals)
+        home_win, draw, away_win = outcome_probabilities(
+            home_goals, away_goals, row['Home Halftime Goals'], row['Away Halftime Goals']
+        )
 
-        # Determine match result
-        if home_goals_rounded > away_goals_rounded:
-            result = f"{row['Home Team']} is predicted to win!"
-        elif away_goals_rounded > home_goals_rounded:
-            result = f"{row['Away Team']} is predicted to win!"
-        else:
-            result = "It's predicted to be a tie!"
+        # Most likely outcome, from the probabilities (not the rounded score)
+        outcomes = {
+            f"{row['Home Team']} win": home_win,
+            "Draw": draw,
+            f"{row['Away Team']} win": away_win,
+        }
+        result = max(outcomes, key=outcomes.get)
 
         # Return detailed result
         output = (
             f"🏟️ Match: {row['Home Team']} vs {row['Away Team']}\n\n"
             f"🔢 Predicted Score:\n"
             f"   - {row['Home Team']}: {home_goals_rounded}\n"
-            f"   - {row['Away Team']}: {away_goals_rounded}\n\n"
-            f"📊 Win Probabilities:\n"
-            f"   - {row['Home Team']}: {home_prob}%\n"
-            f"   - {row['Away Team']}: {away_prob}%\n\n"
-            f"📣 Result: {result}"
+            f"   - {row['Away Team']}: {away_goals_rounded}\n"
+            f"   (Expected goals: {row['Home Team']} {home_goals:.1f}, {row['Away Team']} {away_goals:.1f})\n\n"
+            f"📊 Win Probabilities (estimated):\n"
+            f"   - {row['Home Team']}: {home_win:.0%}\n"
+            f"   - Draw: {draw:.0%}\n"
+            f"   - {row['Away Team']}: {away_win:.0%}\n\n"
+            f"📣 Most likely result: {result} ({outcomes[result]:.0%})"
         )
         return output
 
@@ -86,6 +107,6 @@ gr.Interface(
     inputs=gr.File(label="Upload CSV with Halftime Stats"),
     outputs=gr.Textbox(label="Predicted Outcome"),
     title="⚽ Soccer Engine",
-    description="Upload a CSV file containing halftime stats to predict final score, win probability, and match outcome.",
+    description="Upload a CSV file containing halftime stats to predict the final score and win/draw/loss probabilities.",
     theme="soft"
 ).launch()  # opens locally; share=True would create a public link
