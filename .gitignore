@@ -1,0 +1,12 @@
+# secrets
+.env
+
+# local environment
+.venv/
+
+# trained models (regenerate by running src/models/)
+*.pkl
+
+# Python and macOS junk
+__pycache__/
+.DS_Store
