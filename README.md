@@ -173,7 +173,7 @@ I built this project in spring 2025: collected the data, engineered the halftime
 
 ## What I'd do next time
 
-- Test new features (head-to-head history, player availability such as injuries and leading scorers, and team formation) to see how they affect goal predictions. The main constraint is access to this data.
+- Test new features (head-to-head history, player availability such as leading scorers and injuries, and team formation) to see how they affect goal predictions. The main constraint is access to this data.
 - Use a chronological split or time-series cross-validation, and report variance across folds.
-- Switch the main pre-match scripts to the three-season data, since the experiment shows it helps.
+- Train on more seasons of data and analyze whether it improves pre-match accuracy, since three seasons of data improved pre-match accuracy slightly over one.
 - Use one shared feature list for both halftime models.
