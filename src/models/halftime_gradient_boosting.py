@@ -1,7 +1,9 @@
 import json
 import joblib
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import shap
 from pathlib import Path
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import GridSearchCV, train_test_split
@@ -11,8 +13,19 @@ from xgboost import XGBRegressor
 ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "data"
 MODELS = ROOT / "models"
+IMAGES = ROOT / "docs" / "images"
+IMAGES.mkdir(parents=True, exist_ok=True)
 
 df = pd.read_csv(DATA / "EPL_halftime_2024-25.csv")
+
+## Engineered features (computed from first-half stats; +1 avoids dividing by zero)
+# Keep in sync with the other halftime script
+df['Home Shot Quality'] = (df['Home Shots on Goal']) / (df['Home Total Shots'] + 1)
+df['Away Shot Quality'] = (df['Away Shots on Goal']) / (df['Away Total Shots'] + 1)
+df['Home Opp Defense'] = (df['Home Halftime Goals'] + 1) / (df['Home Shots on Goal'] + 1)
+df['Away Opp Defense'] = (df['Away Halftime Goals'] + 1) / (df['Away Shots on Goal'] + 1)
+df['Home Chance Creation'] = (df['Home Ball Possession'] / 100) * (df['Home Shots on Goal'] + 1)
+df['Away Chance Creation'] = (df['Away Ball Possession'] / 100) * (df['Away Shots on Goal'] + 1)
 
 ## Preparing Data
 # Save Features
@@ -138,3 +151,15 @@ print(f"Home MAE: {mean_absolute_error(y_home_test, y_home_pred):.2f}")
 print(f"Away MAE: {mean_absolute_error(y_away_test, y_away_pred):.2f}")
 print(f"Home R²: {r2_score(y_home_test, y_home_pred):.2f}")
 print(f"Away R²: {r2_score(y_away_test, y_away_pred):.2f}")
+
+
+## SHAP waterfall: how the app's models predicted the demo match
+# The first test match is Ipswich vs Nottingham Forest, the same match as data/sample_halftime_input.csv
+for side, model, X_test in [("home", best_model_home, X_home_test), ("away", best_model_away, X_away_test)]:
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer(X_test.iloc[[0]], check_additivity=False)
+    shap.plots.waterfall(shap_values[0], show=False)
+    plt.savefig(IMAGES / f"shap_halftime_xgb_{side}_demo_match.png", dpi=200, bbox_inches="tight")
+    plt.close()
+
+print(f"Demo-match SHAP plots saved to {IMAGES}")

@@ -1,0 +1,20 @@
+# Tested with Python 3.14
+# macOS: XGBoost also needs OpenMP -> brew install libomp
+
+# Data + modeling
+pandas==3.1.1
+numpy==2.5.4
+scikit-learn==1.9.1
+xgboost==3.4.1
+joblib==1.6.0
+
+# Explainability plots
+shap==0.54.1
+matplotlib==3.11.2
+
+# Demo UI
+gradio==6.31.0
+
+# Only for the data-collection scripts in src/data/ (not needed to train or run the UI)
+python-dotenv==1.2.4
+lxml

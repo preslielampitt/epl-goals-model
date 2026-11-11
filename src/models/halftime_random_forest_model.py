@@ -17,6 +17,15 @@ IMAGES.mkdir(parents=True, exist_ok=True)
 # Read CSV with statistics
 df = pd.read_csv(DATA / "EPL_halftime_2024-25.csv")
 
+## Engineered features (computed from first-half stats; +1 avoids dividing by zero)
+# Keep in sync with the other halftime script
+df['Home Shot Quality'] = (df['Home Shots on Goal']) / (df['Home Total Shots'] + 1)
+df['Away Shot Quality'] = (df['Away Shots on Goal']) / (df['Away Total Shots'] + 1)
+df['Home Opp Defense'] = (df['Home Halftime Goals'] + 1) / (df['Home Shots on Goal'] + 1)
+df['Away Opp Defense'] = (df['Away Halftime Goals'] + 1) / (df['Away Shots on Goal'] + 1)
+df['Home Chance Creation'] = (df['Home Ball Possession'] / 100) * (df['Home Shots on Goal'] + 1)
+df['Away Chance Creation'] = (df['Away Ball Possession'] / 100) * (df['Away Shots on Goal'] + 1)
+
 ## Preparing Data
 # Save Features: Two Options
 # Option 1: Save all features (better home results, slightly worse away results)
