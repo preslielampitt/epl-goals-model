@@ -52,7 +52,7 @@ RMSE in goals. For Option 2, I removed features that contributed little in the S
 | Random forest | Home | 1.348 | 1.269 | 1.235 |
 | Random forest | Away | 0.957 | 0.944 | 0.961 |
 
-RMSE in goals, Option 2 features, tested on the same 2024-25 matches. Adding the 2022-23 and 2023-24 seasons improved every model, and XGBoost clearly beat the baseline. The gains are modest (R² up to 0.08), but all 8 combinations of model, side, and feature set improved.
+RMSE in goals, Option 2 features, tested on the same 2024-25 matches. Adding the 2022-23 and 2023-24 seasons lowered RMSE for every model, and XGBoost clearly beat the baseline. The random forest's home model improved but still didn't beat the baseline (1.269 vs 1.235). Gains are modest (R² up to 0.08).
 
 ## Run it
 
@@ -166,7 +166,7 @@ I built this project in spring 2025: collected the data, engineered the halftime
 
 - **Small data.** One season, ~340 matches; test sets are ~68 matches, so small differences between models aren't reliable.
 - **Random split, not by date.** Training can include matches played after test matches. A chronological split would be stricter.
-- **Feature lists differ between halftime models.** The random forest and XGBoost halftime models use different features (15 vs 10), so the comparison isn't apples to apples. The random forest's away model also drops `Away Shots on Goal` instead of `Home Shots on Goal`, likely a typo.
+- **Halftime models use different feature lists.** The random forest's list (15 features) was chosen before the engineered features existed. The XGBoost list (10) was refined afterward and drops raw stats the engineered features already capture, like total shots and possession. So differences between the two models reflect both the algorithm and the inputs.
 - **Early-season rank is alphabetical.** On matchday 1 every team has 0 points, so `Rank` reflects alphabetical order for the first few weeks.
 - **Halftime data and collection script are out of sync.** The halftime CSV was pulled with the endpoint's first-half option (a paid feature), but the API script in this repo doesn't include that request and returns full-match stats.
 - **Probability assumptions.** Win/draw/loss probabilities assume independent Poisson goals, which slightly underestimates draws, and the models were trained on squared error rather than as Poisson models. The probabilities haven't been checked for calibration.
